@@ -1,9 +1,6 @@
-package users
+package boards
 
 import (
-	"errors"
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -31,21 +28,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetByID(c *fiber.Ctx) error {
-	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
-	}
-
-	user, err := h.useCase.GetByID(c.Context(), userID)
-
-	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
-	}
-
-	return c.JSON(user)
+	return nil
 }
 
 func (h *Handler) Update(c *fiber.Ctx) error {
