@@ -36,7 +36,7 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	user, err := h.useCase.GetByID(c.Context(), userID)
+	user, err := h.useCase.GetByID(c.UserContext(), userID)
 
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {

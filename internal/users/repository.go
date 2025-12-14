@@ -26,39 +26,112 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, user *User) error {
+	log := zerolog.Ctx(ctx)
+
+	log.Trace().Str("email", user.Email).Msg("attempting to create user")
+
+	query := "INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id"
+
+	err := r.db.QueryRow(ctx, query, user.Email, user.Username, user.Password).Scan(&user.ID)
+	if err != nil {
+		// Здесь можно добавить проверку на дубликат (error code 23505),
+		// если email уже занят, но пока оставим общий Error.
+		log.Error().Err(err).Str("email", user.Email).Msg("failed to create user")
+		return fmt.Errorf("users.repository.Create: %w", err)
+	}
+
+	// Теперь в объекте user заполнен ID!
+	log.Debug().Int64("user_id", user.ID).Msg("user created successfully")
+
 	return nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id int64) (*User, error) {
 	log := zerolog.Ctx(ctx)
 
-	ctx.log.Trace().Int64("user_id", id).Msg("attempting to get user")
+	log.Trace().Int64("user_id", id).Msg("attempting to get user")
 
 	var user User
 
 	user.ID = id
 
-	row := r.db.QueryRow(ctx, "SELECT email, username, password FROM users WHERE id = $1", id)
+	query := "SELECT email, username, password FROM users WHERE id = $1"
+
+	row := r.db.QueryRow(ctx, query, id)
 
 	err := row.Scan(&user.Email, &user.Username, &user.Password)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			r.log.Debug().Int64("user_id", id).Msg("user not found")
+			log.Debug().Int64("user_id", id).Msg("user not found")
 			return nil, ErrUserNotFound
 		}
 
-		r.log.Error().Err(err).Int64("user_id", id).Msg("failed to get user by id")
+		log.Error().Err(err).Int64("user_id", id).Msg("failed to get user by id")
 		return nil, fmt.Errorf("users.repository.GetByID: %w", err)
 	}
 
-	r.log.Debug().Int64("user_id", id).Msg("user retrieved successfully")
+	log.Debug().Int64("user_id", id).Msg("user retrieved successfully")
 	return &user, nil
 }
 
 func (r *repository) Update(ctx context.Context, user *User) error {
+	log := zerolog.Ctx(ctx)
+
+	log.Trace().Int64("user_id", user.ID).Str("email", user.Email).Msg("attempting to update user")
+
+	// SQL запрос на обновление всех полей
+	// Если у вас есть поле updated_at, его стоит обновлять здесь же:
+	// ... password = $3, updated_at = NOW() WHERE ...
+	query := "UPDATE users SET email = $1, username = $2, password = $3 WHERE id = $4"
+
+	// 1. Используем Exec, так как нам не нужно возвращать данные (если не используем RETURNING)
+	commandTag, err := r.db.Exec(ctx, query, user.Email, user.Username, user.Password, user.ID)
+
+	// 2. Обработка технических ошибок
+	if err != nil {
+		// Опционально: проверка на дубликат (error code 23505),
+		// если пользователь пытается сменить email на уже занятый.
+
+		log.Error().Err(err).Int64("user_id", user.ID).Msg("failed to execute update query")
+		return fmt.Errorf("users.repository.Update: %w", err)
+	}
+
+	// 3. Проверка: а был ли такой пользователь?
+	if commandTag.RowsAffected() == 0 {
+		log.Debug().Int64("user_id", user.ID).Msg("user not found for update")
+		return ErrUserNotFound
+	}
+
+	log.Debug().Int64("user_id", user.ID).Msg("user updated successfully")
+
 	return nil
 }
 
 func (r *repository) Delete(ctx context.Context, id int64) error {
+	log := zerolog.Ctx(ctx)
+
+	log.Trace().Int64("user_id", id).Msg("attempting to delete user")
+
+	query := "DELETE FROM users WHERE id = $1"
+
+	// 2. Выполняем запрос
+	// Exec возвращает CommandTag, в котором лежит кол-во затронутых строк
+	commandTag, err := r.db.Exec(ctx, query, id)
+
+	// 3. Обработка ТЕХНИЧЕСКИХ ошибок (сеть, синтаксис SQL, констрейнты)
+	if err != nil {
+		log.Error().Err(err).Int64("user_id", id).Msg("failed to execute delete query")
+		// Исправил опечатку в сообщении ошибки: было GetByID -> стало Delete
+		return fmt.Errorf("users.repository.Delete: %w", err)
+	}
+
+	// 4. Проверка БИЗНЕС-логики (нашли кого-то или нет?)
+	if commandTag.RowsAffected() == 0 {
+		log.Debug().Int64("user_id", id).Msg("user not found for deletion")
+		return ErrUserNotFound
+	}
+
+	log.Debug().Int64("user_id", id).Msg("user deleted successfully")
+
 	return nil
 }
