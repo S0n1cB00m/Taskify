@@ -1,6 +1,7 @@
 package app
 
 import (
+	"Taskify/internal/config"
 	"context"
 	"fmt"
 	"os"
@@ -24,23 +25,60 @@ import (
 )
 
 func Run() error {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		return fmt.Errorf("config init failed: %w", err)
+	}
+
+	logger := initLogger()
+	logger.Info().Msg("Initializing application...")
+
+	ctx := context.Background()
+	pool, err := initDatabase(ctx, cfg.ConnectionURL(), logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize database: %w", err)
+	}
+	defer pool.Close()
+
+	app := createFiberApp()
+
+	registerRoutes(app, pool)
+
+	logger.Info().Msgf("Server starting on :%s", cfg.HTTP.Port)
+	logger.Info().Msgf("Swagger UI: http://%s:%s/swagger/index.html", cfg.HTTP.Host, cfg.HTTP.Port)
+
+	return app.Listen(":3000")
+}
+
+func initLogger() zerolog.Logger {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	logger := zerolog.New(output).With().Timestamp().Logger()
 	log.Logger = logger
-	logger.Info().Msg("Initializing application...")
+	return logger
+}
 
-	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, "postgres://postgres:AaGgRrUuNnAa99!@localhost:5433/postgres")
+func initDatabase(ctx context.Context, connString string, logger zerolog.Logger) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
-		return fmt.Errorf("init db: %w", err)
+		logger.Error().Err(err).Msg("Failed to connect to database")
+		return nil, err
 	}
-	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		logger.Error().Err(err).Msg("Failed to ping database")
+		return nil, err
+	}
+
+	logger.Info().Msg("Database connection established")
+	return pool, nil
+}
+
+func createFiberApp() *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // Или укажите конкретно "http://localhost:3000"
+		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
@@ -52,7 +90,6 @@ func Run() error {
 		c.Set("X-Request-ID", reqID)
 
 		l := log.With().Str("req_id", reqID).Logger()
-
 		ctx := l.WithContext(c.UserContext())
 		c.SetUserContext(ctx)
 
@@ -61,30 +98,42 @@ func Run() error {
 
 	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
 
+	return app
+}
+
+func registerRoutes(app *fiber.App, pool *pgxpool.Pool) {
 	api := app.Group("/api")
 
-	userRepo := users.NewRepository(pool)
-	userUseCase := users.NewUseCase(userRepo)
-	userHandler := users.NewHandler(userUseCase)
-	userHandler.RegisterRoutes(api)
+	registerUsersRoutes(api, pool)
+	registerBoardsRoutes(api, pool)
+	registerColumnsRoutes(api, pool)
+	registerTasksRoutes(api, pool)
+}
 
-	boardRepo := boards.NewRepository(pool)
-	boardUseCase := boards.NewUseCase(boardRepo)
-	boardHandler := boards.NewHandler(boardUseCase)
-	boardHandler.RegisterRoutes(api)
+func registerUsersRoutes(api fiber.Router, pool *pgxpool.Pool) {
+	repo := users.NewRepository(pool)
+	useCase := users.NewUseCase(repo)
+	handler := users.NewHandler(useCase)
+	handler.RegisterRoutes(api)
+}
 
-	columnRepo := columns.NewRepository(pool)
-	columnUseCase := columns.NewUseCase(columnRepo)
-	columnHandler := columns.NewHandler(columnUseCase)
-	columnHandler.RegisterRoutes(api)
+func registerBoardsRoutes(api fiber.Router, pool *pgxpool.Pool) {
+	repo := boards.NewRepository(pool)
+	useCase := boards.NewUseCase(repo)
+	handler := boards.NewHandler(useCase)
+	handler.RegisterRoutes(api)
+}
 
-	taskRepo := tasks.NewRepository(pool)
-	taskUseCase := tasks.NewUseCase(taskRepo)
-	taskHandler := tasks.NewHandler(taskUseCase)
-	taskHandler.RegisterRoutes(api)
+func registerColumnsRoutes(api fiber.Router, pool *pgxpool.Pool) {
+	repo := columns.NewRepository(pool)
+	useCase := columns.NewUseCase(repo)
+	handler := columns.NewHandler(useCase)
+	handler.RegisterRoutes(api)
+}
 
-	logger.Info().Msg("Server starting on :3000")
-	log.Info().Msg("Swagger UI: http://185.68.22.208:3000/swagger/index.html")
-
-	return app.Listen(":3000")
+func registerTasksRoutes(api fiber.Router, pool *pgxpool.Pool) {
+	repo := tasks.NewRepository(pool)
+	useCase := tasks.NewUseCase(repo)
+	handler := tasks.NewHandler(useCase)
+	handler.RegisterRoutes(api)
 }

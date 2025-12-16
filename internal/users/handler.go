@@ -65,7 +65,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Description  Получает пользователя по ID
 // @Tags         users
 // @Produce      json
-// @Param        id   path      int  true  "User ID"
+// @Param        id   path      int  true  "id пользователя"
 // @Success      200  {object}  User
 // @Router       /users/{id} [get]
 func (h *Handler) GetByID(c *fiber.Ctx) error {
@@ -91,8 +91,8 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        id    path      int                   true  "User ID"
-// @Param        input body      CreateUserDTO true  "Fields to update"
+// @Param        id    path      int                   true  "id пользователя"
+// @Param        input body      CreateUserDTO true  "Поля для редактирования"
 // @Success      200   {object}  User
 // @Router       /users/{id} [put]
 func (h *Handler) Update(c *fiber.Ctx) error {

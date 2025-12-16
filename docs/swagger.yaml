@@ -1,0 +1,121 @@
+basePath: /api
+definitions:
+  users.CreateUserDTO:
+    properties:
+      email:
+        example: taskify@example.com
+        type: string
+      password:
+        example: "123456"
+        type: string
+      username:
+        example: johnlennon
+        type: string
+    type: object
+  users.User:
+    properties:
+      email:
+        example: taskify@example.com
+        type: string
+      id:
+        example: 101
+        type: integer
+      username:
+        example: johnlennon
+        type: string
+    type: object
+host: 185.68.22.208:3000
+info:
+  contact: {}
+  description: This is a sample server for Taskify application.
+  title: Taskify API
+  version: "1.0"
+paths:
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: 'Создает пользователя, используя поля: email, username, password'
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: RequestBody
+        required: true
+        schema:
+          $ref: '#/definitions/users.CreateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/users.User'
+      summary: Создание пользователя
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Удаляет пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.User'
+      summary: Удаление пользователя
+      tags:
+      - users
+    get:
+      description: Получает пользователя по ID
+      parameters:
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.User'
+      summary: Получение пользователя
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: 'Обновления пользовательских полей: email, username, password'
+      parameters:
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля для редактирования
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/users.CreateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.User'
+      summary: Обновление пользователя
+      tags:
+      - users
+schemes:
+- http
+swagger: "2.0"

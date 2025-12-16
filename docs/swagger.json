@@ -1,0 +1,181 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample server for Taskify application.",
+        "title": "Taskify API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "185.68.22.208:3000",
+    "basePath": "/api",
+    "paths": {
+        "/users": {
+            "post": {
+                "description": "Создает пользователя, используя поля: email, username, password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Создание пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации",
+                        "name": "RequestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.CreateUserDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/users.User"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}": {
+            "get": {
+                "description": "Получает пользователя по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получение пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.User"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновления пользовательских полей: email, username, password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновление пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Поля для редактирования",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.CreateUserDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.User"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет пользователя по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Удаление пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.User"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "users.CreateUserDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "taskify@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "johnlennon"
+                }
+            }
+        },
+        "users.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "taskify@example.com"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 101
+                },
+                "username": {
+                    "type": "string",
+                    "example": "johnlennon"
+                }
+            }
+        }
+    }
+}

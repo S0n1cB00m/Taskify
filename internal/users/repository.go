@@ -52,11 +52,11 @@ func (r *repository) GetByID(ctx context.Context, id int64) (*User, error) {
 
 	user.ID = id
 
-	query := "SELECT email, username, password FROM users WHERE id = $1"
+	query := "SELECT email, username FROM users WHERE id = $1"
 
 	row := r.db.QueryRow(ctx, query, id)
 
-	err := row.Scan(&user.Email, &user.Username, &user.Password)
+	err := row.Scan(&user.Email, &user.Username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Debug().Int64("user_id", id).Msg("user not found")

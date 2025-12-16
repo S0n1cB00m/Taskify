@@ -9,7 +9,7 @@ import (
 // @title           Taskify API
 // @version         1.0
 // @description     This is a sample server for Taskify application.
-// @host            localhost:3000
+// @host            185.68.22.208:3000
 // @BasePath        /api
 // @schemes         http
 func main() {
