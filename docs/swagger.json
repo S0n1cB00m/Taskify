@@ -125,7 +125,7 @@
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "User ID",
+                        "description": "id пользователя",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -140,9 +140,196 @@
                     }
                 }
             }
+        },
+        "/users/{user_id}/boards": {
+            "post": {
+                "description": "Создает пользователя, используя id пользователя и поля: name, description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Создание таблицы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для создания",
+                        "name": "RequestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/boards.CreateBoardDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/boards.Board"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user_id}/boards/{id}": {
+            "get": {
+                "description": "Получает таблицы пользователя по ее порядковому номеру",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получение таблицы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "id таблицы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/boards.Board"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновления полей таблицы: name, description",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновление таблицы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "id таблицы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Поля для редактирования",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/boards.CreateBoardDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/boards.Board"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет таблицу пользователя по ее порядковому номеру",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Удаление таблицы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "id таблицы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/boards.Board"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "boards.Board": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Deposit feature development"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 101
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Deposit"
+                }
+            }
+        },
+        "boards.CreateBoardDTO": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Deposit feature development"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Deposit"
+                }
+            }
+        },
         "users.CreateUserDTO": {
             "type": "object",
             "properties": {

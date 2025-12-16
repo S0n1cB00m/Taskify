@@ -36,8 +36,8 @@ func (uc *useCase) Create(ctx context.Context, user *User) (*User, error) {
 }
 
 func (uc *useCase) GetByID(ctx context.Context, id int64) (*User, error) {
-	user, err := uc.repo.GetByID(ctx, id)
-	return user, err
+	receivedUser, err := uc.repo.GetByID(ctx, id)
+	return receivedUser, err
 }
 
 func (uc *useCase) Update(ctx context.Context, user *User) (*User, error) {

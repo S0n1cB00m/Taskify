@@ -1,8 +1,13 @@
 package boards
 
 type Board struct {
-	ID          int64  `json:"id" db:"id" example:"101"`
-	Name        string `json:"daily" db:"name" example:"Deposit"`
+	Index       int64  `json:"id" db:"index" example:"101"`
+	Name        string `json:"name" db:"name" example:"Deposit"`
 	Description string `json:"description" db:"description" example:"Deposit feature development"`
-	OwnerID     int64  `json:"owner_id" db:"owner_id" example:"2"`
+	UserId      int64  `json:"-" db:"user_id" example:"2"`
+}
+
+type CreateBoardDTO struct {
+	Name        string `json:"name" example:"Deposit"`
+	Description string `json:"description" example:"Deposit feature development"`
 }

@@ -1,5 +1,26 @@
 basePath: /api
 definitions:
+  boards.Board:
+    properties:
+      description:
+        example: Deposit feature development
+        type: string
+      id:
+        example: 101
+        type: integer
+      name:
+        example: Deposit
+        type: string
+    type: object
+  boards.CreateBoardDTO:
+    properties:
+      description:
+        example: Deposit feature development
+        type: string
+      name:
+        example: Deposit
+        type: string
+    type: object
   users.CreateUserDTO:
     properties:
       email:
@@ -57,7 +78,7 @@ paths:
     delete:
       description: Удаляет пользователя по ID
       parameters:
-      - description: User ID
+      - description: id пользователя
         in: path
         name: id
         required: true
@@ -114,6 +135,112 @@ paths:
           schema:
             $ref: '#/definitions/users.User'
       summary: Обновление пользователя
+      tags:
+      - users
+  /users/{user_id}/boards:
+    post:
+      consumes:
+      - application/json
+      description: 'Создает пользователя, используя id пользователя и поля: name,
+        description'
+      parameters:
+      - description: id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Данные для создания
+        in: body
+        name: RequestBody
+        required: true
+        schema:
+          $ref: '#/definitions/boards.CreateBoardDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/boards.Board'
+      summary: Создание таблицы
+      tags:
+      - users
+  /users/{user_id}/boards/{id}:
+    delete:
+      description: Удаляет таблицу пользователя по ее порядковому номеру
+      parameters:
+      - description: id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: id таблицы
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/boards.Board'
+      summary: Удаление таблицы
+      tags:
+      - users
+    get:
+      description: Получает таблицы пользователя по ее порядковому номеру
+      parameters:
+      - description: id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: id таблицы
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/boards.Board'
+      summary: Получение таблицы
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: 'Обновления полей таблицы: name, description'
+      parameters:
+      - description: id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: id таблицы
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля для редактирования
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/boards.CreateBoardDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/boards.Board'
+      summary: Обновление таблицы
       tags:
       - users
 schemes:

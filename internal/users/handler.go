@@ -69,12 +69,12 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Success      200  {object}  User
 // @Router       /users/{id} [get]
 func (h *Handler) GetByID(c *fiber.Ctx) error {
-	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	userId, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	user, err := h.useCase.GetByID(c.UserContext(), userID)
+	receivedUser, err := h.useCase.GetByID(c.UserContext(), userId)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
@@ -82,7 +82,7 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(user)
+	return c.Status(fiber.StatusOK).JSON(receivedUser)
 }
 
 // Update
@@ -96,7 +96,7 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 // @Success      200   {object}  User
 // @Router       /users/{id} [put]
 func (h *Handler) Update(c *fiber.Ctx) error {
-	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	userId, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
@@ -110,20 +110,20 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 	}
 
 	user := &User{
-		ID:       userID,
+		ID:       userId,
 		Email:    dto.Email,
 		Username: dto.Username,
 		Password: dto.Password,
 	}
 
-	createdUser, err := h.useCase.Update(c.UserContext(), user)
+	updatedUser, err := h.useCase.Update(c.UserContext(), user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to update user",
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(createdUser)
+	return c.Status(fiber.StatusOK).JSON(updatedUser)
 }
 
 // Delete
@@ -131,16 +131,16 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Description  Удаляет пользователя по ID
 // @Tags         users
 // @Produce      json
-// @Param        id   path      int  true  "User ID"
+// @Param        id   path      int  true  "id пользователя"
 // @Success      200  {object}  User
 // @Router       /users/{id} [delete]
 func (h *Handler) Delete(c *fiber.Ctx) error {
-	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	userId, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	user, err := h.useCase.GetByID(c.UserContext(), userID)
+	deletedUser, err := h.useCase.GetByID(c.UserContext(), userId)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
@@ -148,5 +148,5 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(user)
+	return c.Status(fiber.StatusOK).JSON(deletedUser)
 }

@@ -30,6 +30,7 @@ func (r *repository) Create(ctx context.Context, user *User) (*User, error) {
 
 	log.Trace().Str("email", user.Email).Msg("attempting to create user")
 
+	// noinspection SqlNoDataSourceInspection
 	query := "INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id"
 
 	err := r.db.QueryRow(ctx, query, user.Email, user.Username, user.Password).Scan(&user.ID)
@@ -52,6 +53,7 @@ func (r *repository) GetByID(ctx context.Context, id int64) (*User, error) {
 
 	user.ID = id
 
+	// noinspection SqlNoDataSourceInspection
 	query := "SELECT email, username FROM users WHERE id = $1"
 
 	row := r.db.QueryRow(ctx, query, id)
@@ -76,6 +78,7 @@ func (r *repository) Update(ctx context.Context, user *User) (*User, error) {
 
 	log.Trace().Int64("user_id", user.ID).Str("email", user.Email).Msg("attempting to update user")
 
+	// noinspection SqlNoDataSourceInspection
 	query := "UPDATE users SET email = $1, username = $2, password = $3 WHERE id = $4"
 
 	_, err := r.db.Exec(ctx, query, user.Email, user.Username, user.Password, user.ID)
@@ -95,6 +98,7 @@ func (r *repository) Delete(ctx context.Context, id int64) error {
 
 	log.Trace().Int64("user_id", id).Msg("attempting to delete user")
 
+	// noinspection SqlNoDataSourceInspection
 	query := "DELETE FROM users WHERE id = $1"
 
 	commandTag, err := r.db.Exec(ctx, query, id)
