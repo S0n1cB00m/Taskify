@@ -3,7 +3,7 @@ package users
 import "golang.org/x/crypto/bcrypt"
 
 type User struct {
-	ID       int64  `json:"id" db:"id" example:"101"`
+	Id       int64  `json:"id" db:"id" example:"101"`
 	Email    string `json:"email" db:"email" example:"taskify@example.com"`
 	Username string `json:"username" db:"username" example:"johnlennon"`
 	Password string `json:"-" db:"password" example:"123456"`

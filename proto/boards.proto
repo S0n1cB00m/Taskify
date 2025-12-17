@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package boards;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "internal/pb/boards;boardspb";
+
+service BoardsService {
+  rpc CreateBoard (CreateBoardRequest) returns (CreateBoardResponse);
+  rpc GetBoardByID (GetBoardByIDRequest) returns (GetBoardResponse);
+  rpc UpdateBoard (UpdateBoardRequest) returns (UpdateBoardResponse);
+  rpc DeleteBoard (DeleteBoardRequest) returns (google.protobuf.Empty);
+}
+
+message Board {
+  int64  id          = 1;
+  string name        = 2;
+  string description = 3;
+}
+
+message CreateBoardRequest {
+  string name         = 1;
+  string description  = 2;
+  int64 user_id       = 3;
+}
+
+message CreateBoardResponse {
+  Board board = 1;
+}
+
+message GetBoardByIDRequest {
+  int64  id            = 1;
+  int64  user_id       = 2;
+}
+
+message GetBoardResponse {
+  Board board = 1;
+}
+
+message UpdateBoardRequest {
+  int64  id            = 1;
+  string name          = 2;
+  string description   = 3;
+  int64  user_id       = 4;
+}
+
+message UpdateBoardResponse {
+  Board board = 1;
+}
+
+message DeleteBoardRequest {
+  int64  id            = 1;
+  int64  user_id       = 2;
+}

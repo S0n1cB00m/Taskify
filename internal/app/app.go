@@ -1,6 +1,7 @@
 package app
 
 import (
+	"Taskify/internal/boards"
 	"Taskify/internal/config"
 	"context"
 	"fmt"
@@ -9,7 +10,11 @@ import (
 
 	_ "Taskify/docs"
 
+	boardspb "Taskify/internal/pb/boards"
+	userspb "Taskify/internal/pb/users"
+
 	fiberSwagger "github.com/gofiber/swagger"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -17,8 +22,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 
-	"Taskify/internal/boards"
 	"Taskify/internal/columns"
 	"Taskify/internal/tasks"
 	"Taskify/internal/users"
@@ -34,15 +39,38 @@ func Run() error {
 	logger.Info().Msg("Initializing application...")
 
 	ctx := context.Background()
+
 	pool, err := initDatabase(ctx, cfg.ConnectionURL(), logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
 	defer pool.Close()
 
+	usersConn, err := grpc.NewClient(
+		cfg.GRPC.UsersAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to connect to users-service: %w", err)
+	}
+	defer usersConn.Close()
+
+	usersClient := userspb.NewUsersServiceClient(usersConn)
+
+	boardsConn, err := grpc.NewClient(
+		cfg.GRPC.BoardsAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to connect to boards-service: %w", err)
+	}
+	defer boardsConn.Close()
+
+	boardsClient := boardspb.NewBoardsServiceClient(boardsConn)
+
 	app := createFiberApp()
 
-	registerRoutes(app, pool)
+	registerRoutes(app, pool, usersClient, boardsClient)
 
 	logger.Info().Msgf("Server starting on :%s", cfg.HTTP.Port)
 	logger.Info().Msgf("Swagger UI: http://%s:%s/swagger/index.html", cfg.HTTP.Host, cfg.HTTP.Port)
@@ -101,26 +129,22 @@ func createFiberApp() *fiber.App {
 	return app
 }
 
-func registerRoutes(app *fiber.App, pool *pgxpool.Pool) {
+func registerRoutes(app *fiber.App, pool *pgxpool.Pool, usersClient userspb.UsersServiceClient, boardsClient boardspb.BoardsServiceClient) {
 	api := app.Group("/api")
 
-	registerUsersRoutes(api, pool)
-	registerBoardsRoutes(api, pool)
+	registerUsersRoutes(api, usersClient)
+	registerBoardsRoutes(api, boardsClient)
 	registerColumnsRoutes(api, pool)
 	registerTasksRoutes(api, pool)
 }
 
-func registerUsersRoutes(api fiber.Router, pool *pgxpool.Pool) {
-	repo := users.NewRepository(pool)
-	useCase := users.NewUseCase(repo)
-	handler := users.NewHandler(useCase)
+func registerUsersRoutes(api fiber.Router, usersClient userspb.UsersServiceClient) {
+	handler := users.NewHandler(usersClient)
 	handler.RegisterRoutes(api)
 }
 
-func registerBoardsRoutes(api fiber.Router, pool *pgxpool.Pool) {
-	repo := boards.NewRepository(pool)
-	useCase := boards.NewUseCase(repo)
-	handler := boards.NewHandler(useCase)
+func registerBoardsRoutes(api fiber.Router, boardsClient boardspb.BoardsServiceClient) {
+	handler := boards.NewHandler(boardsClient)
 	handler.RegisterRoutes(api)
 }
 

@@ -3,6 +3,8 @@ package users
 import (
 	"context"
 	"fmt"
+
+	"github.com/rs/zerolog"
 )
 
 type UseCase interface {
@@ -21,6 +23,11 @@ func NewUseCase(repo Repository) UseCase {
 }
 
 func (uc *useCase) Create(ctx context.Context, user *User) (*User, error) {
+	log := zerolog.Ctx(ctx)
+
+	log.Info().
+		Msg("users-service: usecase.Create called")
+
 	if err := user.HashPassword(user.Password); err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -31,6 +38,9 @@ func (uc *useCase) Create(ctx context.Context, user *User) (*User, error) {
 	}
 
 	createdUser.Password = ""
+
+	log.Info().
+		Msg("users-service: usecase.Create finished")
 
 	return createdUser, err
 }
@@ -57,5 +67,6 @@ func (uc *useCase) Update(ctx context.Context, user *User) (*User, error) {
 
 func (uc *useCase) Delete(ctx context.Context, id int64) error {
 	err := uc.repo.Delete(ctx, id)
+
 	return err
 }

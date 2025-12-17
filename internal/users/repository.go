@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )
@@ -33,13 +34,23 @@ func (r *repository) Create(ctx context.Context, user *User) (*User, error) {
 	// noinspection SqlNoDataSourceInspection
 	query := "INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id"
 
-	err := r.db.QueryRow(ctx, query, user.Email, user.Username, user.Password).Scan(&user.ID)
+	err := r.db.QueryRow(ctx, query, user.Email, user.Username, user.Password).Scan(&user.Id)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			log.Error().
+				Str("email", user.Email).
+				Str("code", pgErr.Code).
+				Msg("duplicate user")
+
+			return nil, ErrUserAlreadyExists
+		}
+
 		log.Error().Err(err).Str("email", user.Email).Msg("failed to create user")
 		return nil, fmt.Errorf("users.repository.Create: %w", err)
 	}
 
-	log.Debug().Int64("user_id", user.ID).Msg("user created successfully")
+	log.Debug().Int64("user_id", user.Id).Msg("user created successfully")
 
 	return user, nil
 }
@@ -51,7 +62,7 @@ func (r *repository) GetByID(ctx context.Context, id int64) (*User, error) {
 
 	var user User
 
-	user.ID = id
+	user.Id = id
 
 	// noinspection SqlNoDataSourceInspection
 	query := "SELECT email, username FROM users WHERE id = $1"
@@ -76,19 +87,19 @@ func (r *repository) GetByID(ctx context.Context, id int64) (*User, error) {
 func (r *repository) Update(ctx context.Context, user *User) (*User, error) {
 	log := zerolog.Ctx(ctx)
 
-	log.Trace().Int64("user_id", user.ID).Str("email", user.Email).Msg("attempting to update user")
+	log.Trace().Int64("user_id", user.Id).Str("email", user.Email).Msg("attempting to update user")
 
 	// noinspection SqlNoDataSourceInspection
 	query := "UPDATE users SET email = $1, username = $2, password = $3 WHERE id = $4"
 
-	_, err := r.db.Exec(ctx, query, user.Email, user.Username, user.Password, user.ID)
+	_, err := r.db.Exec(ctx, query, user.Email, user.Username, user.Password, user.Id)
 
 	if err != nil {
 		log.Error().Err(err).Str("email", user.Email).Msg("failed to update user")
 		return nil, fmt.Errorf("users.repository.Update: %w", err)
 	}
 
-	log.Debug().Int64("user_id", user.ID).Msg("user updated successfully")
+	log.Debug().Int64("user_id", user.Id).Msg("user updated successfully")
 
 	return user, nil
 }

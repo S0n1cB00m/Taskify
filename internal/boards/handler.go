@@ -1,20 +1,22 @@
 package boards
 
 import (
-	"errors"
 	"strconv"
 
+	boardspb "Taskify/internal/pb/boards"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Handler struct {
-	useCase UseCase
+	client boardspb.BoardsServiceClient
 }
 
-func NewHandler(uc UseCase) *Handler {
-	return &Handler{
-		useCase: uc,
-	}
+func NewHandler(client boardspb.BoardsServiceClient) *Handler {
+	return &Handler{client: client}
 }
 
 func (h *Handler) RegisterRoutes(app fiber.Router) {
@@ -37,33 +39,41 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 // @Success      201  {object}  Board
 // @Router        /users/{user_id}/boards [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
-	userId, err := strconv.ParseInt(c.Params("board_id"), 10, 64)
+	userID, err := strconv.ParseInt(c.Params("user_id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
 	var dto CreateBoardDTO
-
 	if err := c.BodyParser(&dto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Bad Request",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad Request"})
 	}
 
-	board := &Board{
-		Name:        dto.Name,
-		Description: dto.Description,
-		UserId:      userId,
-	}
+	log.Ctx(c.UserContext()).
+		Info().
+		Int64("user_id", userID).
+		Msg("gateway: CreateBoard called")
 
-	createdBoard, err := h.useCase.Create(c.UserContext(), board)
+	resp, err := h.client.CreateBoard(
+		c.UserContext(),
+		&boardspb.CreateBoardRequest{
+			Name:        dto.Name,
+			Description: dto.Description,
+			UserId:      userID,
+		},
+	)
 	if err != nil {
+		log.Ctx(c.UserContext()).
+			Error().
+			Err(err).
+			Msg("gateway: CreateBoard gRPC failed")
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create board",
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(createdBoard)
+	return c.Status(fiber.StatusCreated).JSON(resp.Board)
 }
 
 // GetByID
@@ -76,30 +86,32 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Success      200  {object}  Board
 // @Router       /users/{user_id}/boards/{id} [get]
 func (h *Handler) GetByID(c *fiber.Ctx) error {
-	userId, err := strconv.ParseInt(c.Params("board_id"), 10, 64)
+	userID, err := strconv.ParseInt(c.Params("user_id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	boardId, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	boardIndex, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	board := &Board{
-		Index:  boardId,
-		UserId: userId,
-	}
-
-	receivedBoard, err := h.useCase.GetByID(c.UserContext(), board)
+	resp, err := h.client.GetBoardByID(
+		c.UserContext(),
+		&boardspb.GetBoardByIDRequest{
+			Id:     boardIndex,
+			UserId: userID,
+		},
+	)
 	if err != nil {
-		if errors.Is(err, ErrBoardNotFound) {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Board not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(receivedBoard)
+	return c.Status(fiber.StatusOK).JSON(resp.Board)
 }
 
 // Update
@@ -114,39 +126,35 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 // @Success      200   {object}  Board
 // @Router       /users/{user_id}/boards/{id} [put]
 func (h *Handler) Update(c *fiber.Ctx) error {
-	userId, err := strconv.ParseInt(c.Params("board_id"), 10, 64)
+	userID, err := strconv.ParseInt(c.Params("user_id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	boardId, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	boardIndex, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
 	var dto CreateBoardDTO
-
 	if err := c.BodyParser(&dto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Bad Request",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad Request"})
 	}
 
-	board := &Board{
-		Index:       boardId,
-		Name:        dto.Name,
-		Description: dto.Description,
-		UserId:      userId,
-	}
-
-	updatedBoard, err := h.useCase.Update(c.UserContext(), board)
+	resp, err := h.client.UpdateBoard(
+		c.UserContext(),
+		&boardspb.UpdateBoardRequest{
+			Id:          boardIndex,
+			Name:        dto.Name,
+			Description: dto.Description,
+			UserId:      userID,
+		},
+	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to update board",
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update board"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(updatedBoard)
+	return c.Status(fiber.StatusOK).JSON(resp.Board)
 }
 
 // Delete
@@ -159,28 +167,30 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Success      200  {object}  Board
 // @Router       /users/{user_id}/boards/{id} [delete]
 func (h *Handler) Delete(c *fiber.Ctx) error {
-	userId, err := strconv.ParseInt(c.Params("user_id"), 10, 64)
+	userID, err := strconv.ParseInt(c.Params("user_id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	boardId, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	boardIndex, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	board := &Board{
-		Index:  boardId,
-		UserId: userId,
-	}
-
-	deletedBoard, err := h.useCase.GetByID(c.UserContext(), board)
+	_, err = h.client.DeleteBoard(
+		c.UserContext(),
+		&boardspb.DeleteBoardRequest{
+			Id:     boardIndex,
+			UserId: userID,
+		},
+	)
 	if err != nil {
-		if errors.Is(err, ErrBoardNotFound) {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Board not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(deletedBoard)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "SUCCESS"})
 }

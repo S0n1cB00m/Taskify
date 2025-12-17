@@ -12,6 +12,7 @@ type (
 	Config struct {
 		HTTP `yaml:"http"`
 		PG   `yaml:"postgres"`
+		GRPC `yaml:"grpc"`
 	}
 
 	HTTP struct {
@@ -27,6 +28,11 @@ type (
 		DBName   string `env-required:"true" yaml:"dbname" env:"PG_DBNAME"`
 		SSLMode  string `yaml:"ssl_mode" env:"PG_SSL_MODE" env-default:"disable"`
 		PoolMax  int    `yaml:"pool_max" env:"PG_POOL_MAX" env-default:"10"`
+	}
+
+	GRPC struct {
+		UsersAddress  string `yaml:"users_address" env:"GRPC_USERS_ADDRESS" env-default:":50051"`
+		BoardsAddress string `yaml:"boards_address" env:"GRPC_BOARDS_ADDRESS" env-default:":50052"`
 	}
 )
 

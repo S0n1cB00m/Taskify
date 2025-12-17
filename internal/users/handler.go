@@ -4,17 +4,20 @@ import (
 	"errors"
 	"strconv"
 
+	userspb "Taskify/internal/pb/users"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Handler struct {
-	useCase UseCase
+	client userspb.UsersServiceClient
 }
 
-func NewHandler(uc UseCase) *Handler {
-	return &Handler{
-		useCase: uc,
-	}
+func NewHandler(client userspb.UsersServiceClient) *Handler {
+	return &Handler{client: client}
 }
 
 func (h *Handler) RegisterRoutes(app fiber.Router) {
@@ -36,6 +39,9 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 // @Success      201  {object}  User
 // @Router       /users [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
+	log.Ctx(c.UserContext()).Info().
+		Msg("users-service: handler.Create called")
+
 	var dto CreateUserDTO
 
 	if err := c.BodyParser(&dto); err != nil {
@@ -44,20 +50,44 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		})
 	}
 
-	user := &User{
-		Email:    dto.Email,
-		Username: dto.Username,
-		Password: dto.Password,
-	}
-
-	createdUser, err := h.useCase.Create(c.UserContext(), user)
+	resp, err := h.client.CreateUser(
+		c.UserContext(),
+		&userspb.CreateUserRequest{
+			Email:    dto.Email,
+			Username: dto.Username,
+			Password: dto.Password,
+		},
+	)
 	if err != nil {
+		log.Ctx(c.UserContext()).
+			Error().
+			Err(err).
+			Msg("gateway: CreateUser gRPC call failed")
+
+		if errors.Is(err, ErrUserAlreadyExists) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "user with this email already exists",
+			})
+		}
+
+		st, ok := status.FromError(err)
+		if ok {
+			log.Ctx(c.UserContext()).
+				Error().
+				Str("code", st.Code().String()).
+				Str("message", st.Message()).
+				Msg("gateway: gRPC status")
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create user",
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(createdUser)
+	log.Ctx(c.UserContext()).Info().
+		Msg("users-service: handler.Create finished")
+
+	return c.Status(fiber.StatusCreated).JSON(resp.User)
 }
 
 // GetByID
@@ -74,15 +104,19 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	receivedUser, err := h.useCase.GetByID(c.UserContext(), userId)
+	resp, err := h.client.GetUserByID(
+		c.UserContext(),
+		&userspb.GetUserByIDRequest{Id: userId},
+	)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(receivedUser)
+	return c.Status(fiber.StatusOK).JSON(resp.User)
 }
 
 // Update
@@ -102,28 +136,28 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 	}
 
 	var dto CreateUserDTO
-
 	if err := c.BodyParser(&dto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Bad Request",
 		})
 	}
 
-	user := &User{
-		ID:       userId,
-		Email:    dto.Email,
-		Username: dto.Username,
-		Password: dto.Password,
-	}
-
-	updatedUser, err := h.useCase.Update(c.UserContext(), user)
+	resp, err := h.client.UpdateUser(
+		c.UserContext(),
+		&userspb.UpdateUserRequest{
+			Id:       userId,
+			Email:    dto.Email,
+			Username: dto.Username,
+			Password: dto.Password,
+		},
+	)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to update user",
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(updatedUser)
+	return c.Status(fiber.StatusOK).JSON(resp.User)
 }
 
 // Delete
@@ -140,13 +174,16 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Bad request"})
 	}
 
-	deletedUser, err := h.useCase.GetByID(c.UserContext(), userId)
+	_, err = h.client.DeleteUser(
+		c.UserContext(),
+		&userspb.DeleteUserRequest{Id: userId})
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(deletedUser)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "SUCCESS"})
 }
