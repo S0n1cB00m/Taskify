@@ -104,7 +104,7 @@ func (r *repository) Delete(ctx context.Context, board *Board) error {
 	log.Trace().Int64("board_id", board.Index).Msg("attempting to delete board")
 
 	// noinspection SqlNoDataSourceInspection
-	query := "DELETE FROM boards WHERE owner_id = $1 AND id = $2"
+	query := "DELETE FROM boards WHERE owner_id = $1 AND index = $2"
 
 	commandTag, err := r.db.Exec(ctx, query, board.UserId, board.Index)
 
