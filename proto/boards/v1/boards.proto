@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package boards.v1;
+
+option go_package = "github.com/S0n1cB00m/Taskify/proto/boards/v1;boardsv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service BoardService {
+  // Создание доски
+  rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
+
+  // Удаление доски
+  // rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
+
+  // Получение доски
+  // rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
+
+  // Получение списка досок
+  // rpc ListBoards(ListBoardsRequest) returns (ListBoardsResponse);
+
+  // Перемещение доски
+  // rpc MoveBoard(MoveBoardRequest) returns (MoveBoardResponse);
+
+  // Обновление доски
+  // rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
+}
+
+message CreateBoardRequest {
+  string title = 1;
+  string description = 2;
+  int64 owner = 3;
+}
+
+message CreateBoardResponse {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
+  int64 owner = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
