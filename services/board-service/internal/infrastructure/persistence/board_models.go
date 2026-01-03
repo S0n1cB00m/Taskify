@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/S0n1cB00m/Taskify/board-service/internal/domain/board"
+	"Taskify/services/board-service/internal/domain/board"
 )
 
 type BoardModel struct {
@@ -29,11 +29,14 @@ func (m *BoardModel) toDomain() *board.Board {
 
 func fromDomain(b *board.Board) *BoardModel {
 	return &BoardModel{
-		ID:          b.ID,
-		Title:       b.Title,
-		Description: b.Description,
-		Owner:       b.Owner,
-		CreatedAt:   b.CreatedAt,
-		UpdatedAt:   b.UpdatedAt,
+		ID:    b.ID,
+		Title: b.Title,
+		Description: sql.NullString{
+			String: b.Description,
+			Valid:  b.Description != "",
+		},
+		Owner:     b.Owner,
+		CreatedAt: b.CreatedAt,
+		UpdatedAt: b.UpdatedAt,
 	}
 }

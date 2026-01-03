@@ -12,19 +12,28 @@ service BoardService {
   rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
 
   // Удаление доски
-  // rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
+  rpc DeleteBoard(DeleteBoardRequest) returns (google.protobuf.Empty);
 
   // Получение доски
-  // rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
+  rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
 
   // Получение списка досок
-  // rpc ListBoards(ListBoardsRequest) returns (ListBoardsResponse);
+  rpc ListBoards(google.protobuf.Empty) returns (ListBoardsResponse);
 
   // Перемещение доски
-  // rpc MoveBoard(MoveBoardRequest) returns (MoveBoardResponse);
+  rpc MoveBoard(MoveBoardRequest) returns (MoveBoardResponse);
 
   // Обновление доски
-  // rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
+  rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
+}
+
+message Board {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
+  int64 owner = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 message CreateBoardRequest {
@@ -34,10 +43,47 @@ message CreateBoardRequest {
 }
 
 message CreateBoardResponse {
-  int64 id = 1;
-  string title = 2;
-  string description = 3;
-  int64 owner = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp updated_at = 6;
+  Board board = 1;
 }
+
+message GetBoardRequest {
+  int64 id = 1;
+}
+
+message GetBoardResponse {
+  Board board = 1;
+}
+
+message DeleteBoardRequest {
+  int64 id = 1;
+}
+
+message ListBoardsResponse {
+  repeated Board board = 1;
+}
+
+message MoveBoardRequest {
+  int64 id = 1;
+  int64 owner = 2;
+}
+
+message MoveBoardResponse {
+  Board board = 1;
+}
+
+message UpdateBoardRequest {
+  int64 id = 1;
+  optional string title = 2;
+  optional string description = 3;
+}
+
+message UpdateBoardResponse {
+  Board board = 1;
+}
+
+//protoc --proto_path=proto \
+//       --go_out=proto \
+//       --go_opt=paths=source_relative \
+//       --go-grpc_out=proto \
+//       --go-grpc_opt=paths=source_relative \
+//       proto/boards/v1/boards.proto
